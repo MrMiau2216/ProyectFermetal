@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Orden</title>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<!-- Header reutilizable -->
+<div th:replace="~{fragments/header :: menu}"></div>
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Editar Orden</h3>
+    <a class="btn btn-secondary" th:href="@{/orden}">Volver</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <form th:action="@{/orden/update}" th:object="${orden}" method="post">
+
+        <input type="hidden" th:field="*{idOrden}">
+
+        <div class="row g-3">
+
+          <div class="col-md-6">
+            <label class="form-label">Obra *</label>
+            <select class="form-select" th:field="*{obra.idObra}">
+              <option value="">-- Seleccione --</option>
+              <option th:each="ob : ${obras}"
+                      th:value="${ob.idObra}"
+                      th:text="${ob.empresa.nombre + ' - ' + ob.nombre}">
+              </option>
+            </select>
+            <div class="text-danger" th:if="${#fields.hasErrors('obra')}" th:errors="*{obra}"></div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Tipo *</label>
+            <select class="form-select" th:field="*{tipoOrden}">
+              <option value="OS">OS</option>
+              <option value="OC">OC</option>
+            </select>
+            <div class="text-danger" th:errors="*{tipoOrden}"></div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">N° Orden *</label>
+            <input class="form-control" th:field="*{numeroOrden}">
+            <div class="text-danger" th:errors="*{numeroOrden}"></div>
+          </div>
+
+			          <!-- orden/edit.html -->
+			<div class="col-md-3">
+			  <label class="form-label">Fecha *</label>
+			
+			  <!-- ✅ Forzamos yyyy-MM-dd para que el navegador lo muestre -->
+			  <input type="date"
+			         class="form-control"
+			         th:name="fechaOrden"
+			         th:value="${orden.fechaOrden != null ? #temporals.format(orden.fechaOrden, 'yyyy-MM-dd') : ''}" />
+			
+			  <div class="text-danger"
+			       th:if="${#fields.hasErrors('fechaOrden')}"
+			       th:errors="*{fechaOrden}"></div>
+			</div>
+
+          <div class="col-md-3">
+            <label class="form-label">Monto total (PEN) *</label>
+            <input class="form-control" type="number" step="0.01" min="0" th:field="*{montoTotal}">
+            <div class="text-danger" th:errors="*{montoTotal}"></div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">¿Usa valorización?</label>
+            <select class="form-select" th:field="*{usaValorizacion}">
+              <option th:value="true">SÍ</option>
+              <option th:value="false">NO (factura directa)</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Estado</label>
+            <select class="form-select" th:field="*{estadoProceso}">
+              <option value="REGISTRADA">REGISTRADA</option>
+              <option value="EN_ESPERA_AUTORIZACION">EN_ESPERA_AUTORIZACION</option>
+              <option value="POR_VALORIZAR">POR_VALORIZAR</option>
+              <option value="POR_FACTURAR">POR_FACTURAR</option>
+              <option value="CERRADA">CERRADA</option>
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">N° Cotización referencial (opcional)</label>
+            <input class="form-control" th:field="*{numeroCotizacionRef}">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Descripción (opcional)</label>
+            <textarea class="form-control" rows="3" th:field="*{descripcion}"></textarea>
+          </div>
+
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button class="btn btn-success" type="submit">Actualizar</button>
+          <a class="btn btn-secondary" th:href="@{/orden}">Cancelar</a>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

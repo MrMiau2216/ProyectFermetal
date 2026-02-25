@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Editar Factura</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #ordenSugerencias { max-height: 220px; overflow:auto; }
+  </style>
+</head>
+
+<body class="bg-light">
+
+<!-- Header reutilizable -->
+<div th:replace="~{fragments/header :: menu}"></div>
+
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Editar Factura</h3>
+    <a class="btn btn-secondary" th:href="@{/factura}">Volver</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <form id="formFactura" th:action="@{/factura/update}" th:object="${factura}" method="post">
+
+        <!-- ✅ Ahora SÍ está dentro del th:object -->
+        <div class="alert alert-danger" th:if="${#fields.hasErrors('*')}">
+          <b>No se pudo guardar.</b> Revisa los campos marcados en rojo.
+        </div>
+
+        <input type="hidden" th:field="*{idFactura}">
+
+        <div class="row g-3">
+
+          <!-- ✅ OBRA (solo UI para filtrar órdenes) -->
+          <div class="col-md-6">
+            <label class="form-label">Obra *</label>
+            <select class="form-select" id="obraSeleccionada">
+              <option value="">-- Seleccione --</option>
+              <option th:each="ob : ${obras}"
+                      th:value="${ob.idObra}"
+                      th:text="${ob.empresa.nombre + ' - ' + ob.nombre}">
+              </option>
+            </select>
+            <small class="text-muted">Elige obra para filtrar órdenes.</small>
+          </div>
+
+          <!-- ✅ ORDEN (autocomplete) -->
+          <div class="col-md-6 position-relative">
+            <label class="form-label">Orden *</label>
+
+            <input class="form-control"
+                   id="ordenBusqueda"
+                   placeholder="Escribe: OS123 / OC456"
+                   autocomplete="off"
+                   disabled>
+
+            <div id="ordenSugerencias"
+                 class="list-group position-absolute w-100"
+                 style="z-index: 2000; display:none;">
+            </div>
+
+            <!-- ✅ se envía al controller -->
+            <input type="hidden" th:field="*{orden.idOrden}" id="ordenId">
+
+            <div class="text-danger mt-1" th:if="${#fields.hasErrors('orden')}" th:errors="*{orden}"></div>
+            <small class="text-muted" id="ordenInfo"></small>
+            <div class="text-danger" id="ordenError" style="display:none;"></div>
+          </div>
+
+          <!-- ✅ VALORIZACIÓN -->
+          <div class="col-md-6">
+            <label class="form-label">Valorización (si aplica)</label>
+
+            <!-- OJO: disabled no se envía en el POST. Antes del submit lo habilitamos. -->
+            <select class="form-select" th:field="*{valorizacion.idValorizacion}" id="valorizacionSelect" disabled>
+              <option value="">-- (sin valorización) --</option>
+            </select>
+
+            <div class="text-danger mt-1" th:if="${#fields.hasErrors('valorizacion')}" th:errors="*{valorizacion}"></div>
+            <small class="text-muted" id="valInfo"></small>
+          </div>
+
+          <!-- Serie -->
+          <div class="col-md-3">
+            <label class="form-label">Serie (opcional)</label>
+            <input class="form-control" th:field="*{serieFactura}" list="listaSeries" placeholder="Ej: F001">
+            <datalist id="listaSeries">
+              <option th:each="s : ${seriesFactura}" th:value="${s}"></option>
+            </datalist>
+          </div>
+
+          <!-- Número -->
+          <div class="col-md-3">
+            <label class="form-label">Número *</label>
+            <input class="form-control" th:field="*{numeroFactura}">
+            <div class="text-danger" th:errors="*{numeroFactura}"></div>
+          </div>
+
+          <!-- Fecha emisión -->
+          <div class="col-md-3">
+            <label class="form-label">Fecha de emisión</label>
+            <input type="date" class="form-control" th:field="*{fechaEmision}" readonly>
+          </div>
+
+          <!-- Días pago -->
+          <div class="col-md-3">
+            <label class="form-label">Días de pago *</label>
+            <input class="form-control" type="number" min="1" th:field="*{diasPago}">
+          </div>
+
+          <!-- Estado factura -->
+          <div class="col-md-4">
+            <label class="form-label">Estado factura *</label>
+            <select class="form-select" th:field="*{estadoFactura}" id="estadoFactura">
+              <option value="POR_COBRAR">POR_COBRAR</option>
+              <option value="PAGADA">PAGADA</option>
+              <option value="EN_RECLAMO">EN_RECLAMO</option>
+              <option value="ANULADA">ANULADA</option>
+            </select>
+            <div class="text-danger" th:errors="*{estadoFactura}"></div>
+          </div>
+
+          <!-- Detracción -->
+          <div class="col-md-4">
+            <label class="form-label">¿Aplica detracción?</label>
+            <select class="form-select" th:field="*{aplicaDetraccion}">
+              <option th:value="true">SÍ</option>
+              <option th:value="false">NO</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Estado detracción</label>
+            <select class="form-select" th:field="*{estadoDetraccion}">
+              <option value="PENDIENTE">PENDIENTE</option>
+              <option value="PAGADA">PAGADA</option>
+              <option value="NO_APLICA">NO_APLICA</option>
+            </select>
+          </div>
+
+          <!-- Fondo garantía -->
+          <div class="col-md-4">
+            <label class="form-label">¿Aplica fondo de garantía?</label>
+            <select class="form-select" th:field="*{aplicaFondoGarantia}">
+              <option th:value="false">NO</option>
+              <option th:value="true">SÍ</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">% Fondo garantía</label>
+            <input class="form-control" type="number" step="0.01" min="0" max="20"
+                   th:field="*{porcentajeFondoGarantia}">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Estado fondo garantía</label>
+            <select class="form-select" th:field="*{estadoFondoGarantia}">
+              <option value="NO_APLICA">NO_APLICA</option>
+              <option value="PENDIENTE">PENDIENTE</option>
+              <option value="PAGADO_TOTAL">PAGADO_TOTAL</option>
+              <option value="PARCIAL_PAGADO">PARCIAL_PAGADO</option>
+              <option value="USO_PARCIAL">USO_PARCIAL</option>
+            </select>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Fondo pagado (PEN)</label>
+            <input class="form-control" type="number" step="0.01" min="0" th:field="*{montoFondoPagado}">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Fondo usado (PEN)</label>
+            <input class="form-control" type="number" step="0.01" min="0" th:field="*{montoFondoUsado}">
+          </div>
+
+          <!-- Resumen calculado -->
+          <div class="col-md-4">
+            <label class="form-label">Total (Orden/Valorización)</label>
+            <input class="form-control" th:value="${factura.total}" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Monto detracción (auto)</label>
+            <input class="form-control" th:value="${factura.montoDetraccion}" readonly>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Fondo retenido (auto)</label>
+            <input class="form-control" th:value="${factura.montoFondoRetenido}" readonly>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Neto cobrado (auto)</label>
+            <input class="form-control" th:value="${factura.netoCobrado}" readonly>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Fecha vencimiento (auto)</label>
+            <input class="form-control" th:value="${factura.fechaVencimiento}" readonly>
+          </div>
+
+          <!-- ==================== ANULACIÓN ==================== -->
+          <div class="col-12 mt-2">
+            <div class="alert alert-danger mb-2">
+              <b>ANULACIÓN:</b> Completa solo si el estado es <b>ANULADA</b>.
+            </div>
+          </div>
+
+          <div id="bloqueAnulacion" class="row g-3 ms-0 me-0">
+            <div class="col-md-4">
+              <label class="form-label">Tipo anulación</label>
+              <select class="form-select" th:field="*{tipoAnulacion}" id="tipoAnulacion">
+                <option value="">-- Seleccione --</option>
+                <option value="NOTA_CREDITO">NOTA_CREDITO</option>
+                <option value="BAJA">BAJA</option>
+              </select>
+              <div class="text-danger" th:errors="*{tipoAnulacion}"></div>
+            </div>
+
+            <div class="col-md-2">
+              <label class="form-label">Serie</label>
+              <input class="form-control" th:field="*{serieAnulacion}">
+              <div class="text-danger" th:errors="*{serieAnulacion}"></div>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Número</label>
+              <input class="form-control" th:field="*{numeroAnulacion}">
+              <div class="text-danger" th:errors="*{numeroAnulacion}"></div>
+            </div>
+
+            <div class="col-md-3">
+              <label class="form-label">Fecha</label>
+              <input class="form-control" type="date" th:field="*{fechaAnulacion}">
+              <div class="text-danger" th:errors="*{fechaAnulacion}"></div>
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label">Motivo</label>
+              <textarea class="form-control" rows="2" th:field="*{motivoAnulacion}"></textarea>
+              <div class="text-danger" th:errors="*{motivoAnulacion}"></div>
+            </div>
+          </div>
+
+          <div class="col-12 mt-3 d-flex gap-2">
+            <button class="btn btn-success" type="submit">Actualizar</button>
+            <a class="btn btn-secondary" th:href="@{/factura}">Cancelar</a>
+          </div>
+
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script th:inline="javascript">
+  const obraActual       = /*[[${factura.orden.obra.idObra}]]*/ 0;
+  const ordenIdActual    = /*[[${factura.orden.idOrden}]]*/ 0;
+  const usaValActual     = /*[[${factura.orden.usaValorizacion}]]*/ false;
+  const ordenTextoActual = /*[[${factura.orden.tipoOrden + factura.orden.numeroOrden + ' | PEN ' + factura.orden.montoTotal + ' | Val=' + (factura.orden.usaValorizacion ? 'SI' : 'NO')}]]*/ "";
+  const valIdActual      = /*[[${factura.valorizacion != null ? factura.valorizacion.idValorizacion : null}]]*/ null;
+</script>
+
+<script>
+  const form = document.getElementById("formFactura");
+
+  const obraSel = document.getElementById("obraSeleccionada");
+  const ordenBusqueda = document.getElementById("ordenBusqueda");
+  const ordenId = document.getElementById("ordenId");
+  const ordenInfo = document.getElementById("ordenInfo");
+  const ordenError = document.getElementById("ordenError");
+  const ordenSugerencias = document.getElementById("ordenSugerencias");
+
+  const valSelect = document.getElementById("valorizacionSelect");
+  const valInfo = document.getElementById("valInfo");
+
+  const estadoFactura = document.getElementById("estadoFactura");
+  const bloqueAnulacion = document.getElementById("bloqueAnulacion");
+
+  const tipoAnulacion = document.getElementById("tipoAnulacion");
+  const serieAnulacion = document.querySelector('[name="serieAnulacion"]');
+  const numeroAnulacion = document.querySelector('[name="numeroAnulacion"]');
+  const fechaAnulacion = document.querySelector('[name="fechaAnulacion"]');
+  const motivoAnulacion = document.querySelector('[name="motivoAnulacion"]');
+
+  let sugerencias = [];
+  let idx = -1;
+  let tmr = null;
+
+  function ocultarErrorOrden() {
+    ordenError.style.display = "none";
+    ordenError.textContent = "";
+  }
+  function mostrarErrorOrden(msg) {
+    ordenError.style.display = "block";
+    ordenError.textContent = msg;
+  }
+
+  function limpiarValorizaciones() {
+    valSelect.innerHTML = '<option value="">-- (sin valorización) --</option>';
+    valSelect.value = "";
+    valSelect.disabled = true;
+    valInfo.textContent = "";
+  }
+
+  function ocultarSugerencias() {
+    ordenSugerencias.style.display = "none";
+    ordenSugerencias.innerHTML = "";
+    idx = -1;
+  }
+
+  function pintarSugerencias() {
+    ordenSugerencias.innerHTML = "";
+    if (!sugerencias || sugerencias.length === 0) return ocultarSugerencias();
+
+    sugerencias.forEach((o, i) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "list-group-item list-group-item-action";
+      btn.textContent = o.label;
+      if (i === idx) btn.classList.add("active");
+      btn.onmousedown = () => seleccionarOrden(o);
+      ordenSugerencias.appendChild(btn);
+    });
+    ordenSugerencias.style.display = "block";
+  }
+
+  async function buscarOrdenes() {
+    const idObra = obraSel.value;
+    const q = ordenBusqueda.value.trim();
+    if (!idObra) return;
+
+    const resp = await fetch(`/api/factura/ordenes?idObra=${idObra}&q=${encodeURIComponent(q)}`);
+    if (!resp.ok) return;
+
+    sugerencias = await resp.json();
+    idx = -1;
+    pintarSugerencias();
+  }
+
+  async function cargarValorizaciones(idOrden, usaVal) {
+    limpiarValorizaciones();
+
+    if (!usaVal) {
+      valInfo.textContent = "Esta orden es facturación directa (sin valorización).";
+      return;
+    }
+
+    const resp = await fetch(`/api/factura/valorizaciones?idOrden=${idOrden}`);
+    if (!resp.ok) return;
+
+    const data = await resp.json();
+
+    valSelect.disabled = false;
+    data.forEach(v => {
+      const opt = document.createElement("option");
+      opt.value = v.idValorizacion;
+      opt.textContent = v.label;
+      valSelect.appendChild(opt);
+    });
+
+    valInfo.textContent = data.length === 0 ? "No hay valorizaciones para esta orden." : "";
+  }
+
+  function seleccionarOrden(o) {
+    ordenId.value = o.idOrden;
+    ordenBusqueda.value = o.label;
+    ordenInfo.textContent = `Seleccionada: ${o.label}`;
+    ocultarErrorOrden();
+    ocultarSugerencias();
+    cargarValorizaciones(o.idOrden, o.usaValorizacion);
+  }
+
+  function toggleAnulacion() {
+    const esAnulada = (estadoFactura.value === "ANULADA");
+
+    bloqueAnulacion.style.display = esAnulada ? "flex" : "none";
+
+    tipoAnulacion.disabled = !esAnulada;
+    serieAnulacion.disabled = !esAnulada;
+    numeroAnulacion.disabled = !esAnulada;
+    fechaAnulacion.disabled = !esAnulada;
+    motivoAnulacion.disabled = !esAnulada;
+  }
+
+  // INIT
+  (function initEdit() {
+    obraSel.value = obraActual ? String(obraActual) : "";
+    ordenBusqueda.disabled = !obraSel.value;
+
+    ordenBusqueda.value = ordenTextoActual || "";
+    ordenId.value = ordenIdActual ? String(ordenIdActual) : "";
+    ordenInfo.textContent = ordenTextoActual ? ("Actual: " + ordenTextoActual) : "";
+
+    if (ordenIdActual) {
+      cargarValorizaciones(ordenIdActual, !!usaValActual).then(() => {
+        if (valIdActual !== null && valIdActual !== undefined) {
+          valSelect.value = String(valIdActual);
+        }
+      });
+    } else {
+      limpiarValorizaciones();
+    }
+
+    toggleAnulacion();
+  })();
+
+  // EVENTOS
+  obraSel.addEventListener("change", () => {
+    ordenBusqueda.value = "";
+    ordenId.value = "";
+    ordenInfo.textContent = "";
+    ocultarErrorOrden();
+    ocultarSugerencias();
+    sugerencias = [];
+    idx = -1;
+    limpiarValorizaciones();
+
+    ordenBusqueda.disabled = !obraSel.value;
+  });
+
+  ordenBusqueda.addEventListener("input", () => {
+    ordenId.value = "";
+    ordenInfo.textContent = "";
+    ocultarErrorOrden();
+
+    clearTimeout(tmr);
+    tmr = setTimeout(() => buscarOrdenes(), 180);
+  });
+
+  ordenBusqueda.addEventListener("keydown", (e) => {
+    if (ordenSugerencias.style.display !== "block") return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      idx = Math.min(idx + 1, sugerencias.length - 1);
+      pintarSugerencias();
+    }
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      idx = Math.max(idx - 1, 0);
+      pintarSugerencias();
+    }
+    if (e.key === "Enter") {
+      if (idx >= 0 && sugerencias[idx]) {
+        e.preventDefault();
+        seleccionarOrden(sugerencias[idx]);
+      } else if (sugerencias.length === 1) {
+        e.preventDefault();
+        seleccionarOrden(sugerencias[0]);
+      }
+    }
+    if (e.key === "Escape") ocultarSugerencias();
+  });
+
+  ordenBusqueda.addEventListener("blur", () => setTimeout(() => ocultarSugerencias(), 150));
+  ordenBusqueda.addEventListener("focus", () => { if (sugerencias.length > 0) pintarSugerencias(); });
+
+  estadoFactura.addEventListener("change", toggleAnulacion);
+
+  // ✅ CLAVE: habilitar valorización antes de enviar (disabled NO se envía)
+  form.addEventListener("submit", (e) => {
+    if (!ordenId.value) {
+      e.preventDefault();
+      mostrarErrorOrden("Debe seleccionar una orden de la lista.");
+      return;
+    }
+
+    // habilitar para que se envíe su valor al controller
+    valSelect.disabled = false;
+
+    // si no es ANULADA, deshabilita anulación (no se envía)
+    toggleAnulacion();
+  });
+</script>
+
+</body>
+</html>

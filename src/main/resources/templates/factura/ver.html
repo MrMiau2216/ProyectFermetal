@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ver Factura</title>
+
+  <!-- Bootstrap (igual que tus otras páginas) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+
+<body class="bg-light">
+
+<!-- Header reutilizable (full width) -->
+<div th:replace="~{fragments/header :: menu}"></div>
+
+<div class="container py-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Detalle de Factura</h3>
+    <a class="btn btn-secondary" th:href="@{/factura}">Volver</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <p class="mb-1"><b>Serie:</b>
+            <span th:text="${#strings.isEmpty(factura.serieFactura) ? '-' : factura.serieFactura}">-</span>
+          </p>
+          <p class="mb-1"><b>Número:</b> <span th:text="${factura.numeroFactura}">-</span></p>
+          <p class="mb-1"><b>Fecha emisión:</b> <span th:text="${factura.fechaEmision}">-</span></p>
+          <p class="mb-1"><b>Días pago:</b> <span th:text="${factura.diasPago}">-</span></p>
+          <p class="mb-0"><b>Vence:</b> <span th:text="${factura.fechaVencimiento}">-</span></p>
+        </div>
+
+        <div class="col-md-6">
+          <p class="mb-1"><b>Total:</b> <span th:text="${factura.total}">0.00</span></p>
+          <p class="mb-1">
+            <b>Detracción:</b>
+            <span th:text="${factura.montoDetraccion}">0.00</span>
+            (<span th:text="${factura.estadoDetraccion}">-</span>)
+          </p>
+          <p class="mb-1">
+            <b>Fondo retenido:</b>
+            <span th:text="${factura.montoFondoRetenido}">0.00</span>
+            (<span th:text="${factura.estadoFondoGarantia}">-</span>)
+          </p>
+          <p class="mb-0"><b>Neto cobrado:</b> <span th:text="${factura.netoCobrado}">0.00</span></p>
+        </div>
+      </div>
+
+      <hr>
+
+      <p class="mb-1"><b>Estado factura:</b>
+        <span class="badge"
+              th:classappend="
+                ${factura.estadoFactura == 'PAGADA'} ? ' text-bg-success' :
+                (${factura.estadoFactura == 'ANULADA'} ? ' text-bg-secondary' :
+                (${factura.estadoFactura == 'EN_RECLAMO'} ? ' text-bg-danger' : ' text-bg-warning'))"
+              th:text="${factura.estadoFactura}">
+          -
+        </span>
+      </p>
+
+      <!-- ANULACIÓN -->
+      <div class="mt-3" th:if="${factura.estadoFactura == 'ANULADA'}">
+        <div class="alert alert-danger py-2">
+          <b>Anulación registrada</b>
+        </div>
+
+        <div class="row g-2">
+          <div class="col-md-4">
+            <b>Tipo anulación:</b>
+            <span th:text="${factura.tipoAnulacion}">-</span>
+          </div>
+          <div class="col-md-4">
+            <b>Serie anulación:</b>
+            <span th:text="${#strings.isEmpty(factura.serieAnulacion) ? '-' : factura.serieAnulacion}">-</span>
+          </div>
+          <div class="col-md-4">
+            <b>Número anulación:</b>
+            <span th:text="${#strings.isEmpty(factura.numeroAnulacion) ? '-' : factura.numeroAnulacion}">-</span>
+          </div>
+
+          <div class="col-md-4">
+            <b>Fecha anulación:</b>
+            <span th:text="${factura.fechaAnulacion != null ? factura.fechaAnulacion : '-'}">-</span>
+          </div>
+          <div class="col-md-8">
+            <b>Motivo:</b>
+            <span th:text="${#strings.isEmpty(factura.motivoAnulacion) ? '-' : factura.motivoAnulacion}">-</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Bootstrap JS (dropdown del header) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

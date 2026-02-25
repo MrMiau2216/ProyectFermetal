@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark" th:fragment="menu">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold" th:href="@{/}">Fermetal</a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarFermetal"
+            aria-controls="navbarFermetal" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarFermetal">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item"><a class="nav-link" th:href="@{/empresa}">Empresas</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/obra}">Obras</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/orden}">Órdenes</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/valorizacion}">Valorizaciones</a></li>
+        <li class="nav-item"><a class="nav-link" th:href="@{/factura}">Facturas</a></li>
+
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Reportes
+          </a>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" th:href="@{/reporte/facturas}">Reporte de facturas</a></li>
+            <li><a class="dropdown-item" th:href="@{/reporte/conciliacion}">Conciliación</a></li>
+            <li><a class="dropdown-item" th:href="@{/reporte/resumen-empresas}">Resumen Empresas</a></li>
+          </ul>
+        </li>
+      </ul>
+
+      <span class="navbar-text text-light small">Seguimiento de pagos</span>
+    </div>
+  </div>
+</nav>
+
+</body>
+</html>

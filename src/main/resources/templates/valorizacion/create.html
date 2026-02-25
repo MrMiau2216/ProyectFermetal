@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Nueva Valorización</title>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .contenedor-sugerencias { position: relative; }
+    .lista-sugerencias {
+      position: absolute;
+      z-index: 9999;
+      width: 100%;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body class="bg-light">
+
+<!-- Si usas header fragment -->
+<div th:replace="~{fragments/header :: menu}"></div>
+
+<div class="container py-4">
+
+  <h3>Nueva Valorización</h3>
+
+  <!-- Selección Empresa / Obra -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <form class="row g-2" method="get" th:action="@{/valorizacion/new}">
+        <div class="col-md-4">
+          <label class="form-label">Empresa</label>
+          <select class="form-select" name="idEmpresa" onchange="this.form.submit()">
+            <option value="" th:selected="${idEmpresa == null}">-- Seleccione --</option>
+            <option th:each="e : ${empresas}"
+                    th:value="${e.idEmpresa}"
+                    th:text="${e.nombre}"
+                    th:selected="${idEmpresa != null and e.idEmpresa == idEmpresa}">
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Obra</label>
+          <select class="form-select" name="idObra" id="obraSelect" onchange="this.form.submit()">
+            <option value="" th:selected="${idObra == null}">-- Seleccione --</option>
+            <option th:each="o : ${obras}"
+                    th:value="${o.idObra}"
+                    th:text="${o.empresa.nombre + ' - ' + o.nombre}"
+                    th:selected="${idObra != null and o.idObra == idObra}">
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-2 d-flex align-items-end">
+          <a class="btn btn-outline-secondary w-100" th:href="@{/valorizacion/new}">Limpiar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Form principal -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+
+      <form th:action="@{/valorizacion/save}" th:object="${valorizacion}" method="post">
+        <input type="hidden" name="idEmpresa" th:value="${idEmpresa}">
+        <input type="hidden" name="idObra" th:value="${idObra}">
+
+        <!-- ✅ Aquí se guarda el ID REAL de la orden -->
+        <input type="hidden" th:field="*{orden.idOrden}" id="idOrdenSeleccionada">
+
+        <div class="row g-3">
+
+          <!-- Buscador tipo navegador -->
+          <div class="col-md-8 contenedor-sugerencias">
+            <label class="form-label">Orden (buscar escribiendo) *</label>
+            <input class="form-control" id="buscadorOrden"
+                   placeholder="Ej: OS123, OC45, 123..."
+                   th:disabled="${idObra == null}">
+            <div class="form-text text-muted" th:if="${idObra == null}">
+              Primero selecciona Empresa y Obra.
+            </div>
+
+            <div id="listaSugerencias" class="list-group lista-sugerencias d-none"></div>
+
+            <div class="text-danger" th:if="${#fields.hasErrors('orden')}" th:errors="*{orden}"></div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Fecha *</label>
+            <input type="date" class="form-control" th:field="*{fechaValorizacion}">
+            <div class="text-danger" th:errors="*{fechaValorizacion}"></div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label">Porcentaje (%) *</label>
+            <input class="form-control" type="number" step="0.01" min="0.01" max="100" th:field="*{porcentaje}">
+            <div class="text-danger" th:errors="*{porcentaje}"></div>
+          </div>
+
+          <div class="col-12">
+            <div class="alert alert-warning mb-0">
+              El monto valorizado se calcula automáticamente al guardar (montoTotal * % / 100).
+            </div>
+          </div>
+
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button class="btn btn-success" type="submit" th:disabled="${idObra == null}">
+            Guardar
+          </button>
+          <a class="btn btn-secondary" th:href="@{/valorizacion}">Cancelar</a>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const obraSelect   = document.getElementById("obraSelect");
+  const inputOrden   = document.getElementById("buscadorOrden");
+  const lista        = document.getElementById("listaSugerencias");
+  const idOrdenHidden= document.getElementById("idOrdenSeleccionada");
+
+  function getIdObra() {
+    return obraSelect ? obraSelect.value : "";
+  }
+
+  function ocultarLista() {
+    lista.classList.add("d-none");
+    lista.innerHTML = "";
+  }
+
+  function mostrarLista() {
+    lista.classList.remove("d-none");
+  }
+
+  // Evita que Enter envíe el form (esto era el “bloqueo” típico)
+  inputOrden.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") e.preventDefault();
+  });
+
+  // Si cambias obra: limpias orden seleccionada
+  if (obraSelect) {
+    obraSelect.addEventListener("change", () => {
+      inputOrden.value = "";
+      idOrdenHidden.value = "";
+      ocultarLista();
+    });
+  }
+
+  let timer = null;
+
+  inputOrden.addEventListener("input", () => {
+    idOrdenHidden.value = ""; // si escribe, ya no hay selección “segura”
+    const texto = inputOrden.value.trim();
+    const idObra = getIdObra();
+
+    if (!idObra || texto.length === 0) {
+      ocultarLista();
+      return;
+    }
+
+    clearTimeout(timer);
+    timer = setTimeout(async () => {
+      try {
+        const url = `/api/valorizacion/ordenes?idObra=${encodeURIComponent(idObra)}&q=${encodeURIComponent(texto)}`;
+        const resp = await fetch(url);
+
+        if (!resp.ok) {
+          console.error("API error", resp.status);
+          ocultarLista();
+          return;
+        }
+
+        const data = await resp.json();
+        lista.innerHTML = "";
+
+        if (!data || data.length === 0) {
+          ocultarLista();
+          return;
+        }
+
+        data.forEach(item => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "list-group-item list-group-item-action";
+          btn.textContent = item.label;
+
+          btn.addEventListener("click", () => {
+            inputOrden.value = item.label;
+            idOrdenHidden.value = item.idOrden; // ✅ acá queda la orden real
+            ocultarLista();
+          });
+
+          lista.appendChild(btn);
+        });
+
+        mostrarLista();
+      } catch (err) {
+        console.error("Fetch error", err);
+        ocultarLista();
+      }
+    }, 200);
+  });
+
+  // Oculta lista al perder foco (delay para permitir click)
+  inputOrden.addEventListener("blur", () => setTimeout(ocultarLista, 150));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Empresas</title>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<!-- Header reutilizable -->
+<div th:replace="~{fragments/header :: menu}"></div>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Empresas</h3>
+    <a class="btn btn-primary" th:href="@{/empresa/new}">+ Nueva</a>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <table class="table table-striped align-middle">
+        <thead>
+        <tr>
+          <th>RUC</th>
+          <th>Nombre</th>
+          <th>Contacto</th>
+          <th>Teléfono</th>
+          <th>Correo</th>
+          <th>Estado</th>
+          <th style="width:180px;">Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="e : ${lista}">
+          <td th:text="${e.ruc}"></td>
+          <td th:text="${e.nombre}"></td>
+          <td th:text="${e.contactoNombre}"></td>
+          <td th:text="${e.contactoTelefono}"></td>
+          <td th:text="${e.contactoCorreo}"></td>
+          <td th:text="${e.estado}"></td>
+          <td>
+            <a class="btn btn-sm btn-warning" th:href="@{/empresa/edit/{id}(id=${e.idEmpresa})}">Editar</a>
+            <a class="btn btn-sm btn-danger"
+               th:href="@{/empresa/delete/{id}(id=${e.idEmpresa})}"
+               onclick="return confirm('¿Eliminar empresa?');">Eliminar</a>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+
+      <div class="alert alert-info mb-0" th:if="${#lists.isEmpty(lista)}">
+        No hay empresas registradas.
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

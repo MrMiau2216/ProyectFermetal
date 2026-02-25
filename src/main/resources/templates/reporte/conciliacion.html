@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Conciliación</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    .tabla-conciliacion th, .tabla-conciliacion td { vertical-align: middle; }
+    .monto { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .celda-acciones { min-width: 320px; }
+    .texto-chico { font-size: .85rem; }
+    .badge-orden { width: 40px; display: inline-flex; justify-content: center; }
+  </style>
+</head>
+<body class="bg-light">
+
+<!-- Header -->
+<div th:replace="~{fragments/header :: menu}"></div>
+
+<div class="container py-4">
+
+  <div class="mb-3">
+    <h3 class="mb-0">Conciliación</h3>
+    <small class="text-muted">Compara banco vs sistema (SIN detracción / CON detracción)</small>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form class="row g-2" th:action="@{/reporte/conciliacion}" method="get">
+
+        <div class="col-md-3">
+          <label class="form-label mb-1">Empresa</label>
+          <select class="form-select" name="idEmpresa">
+            <option value="" th:selected="${idEmpresa == null}">-- Todas --</option>
+            <option th:each="e : ${empresas}"
+                    th:value="${e.idEmpresa}"
+                    th:text="${e.nombre}"
+                    th:selected="${idEmpresa != null and e.idEmpresa == idEmpresa}">
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label mb-1">Obra</label>
+          <select class="form-select" name="idObra">
+            <option value="" th:selected="${idObra == null}">-- Todas --</option>
+            <option th:each="o : ${obras}"
+                    th:value="${o.idObra}"
+                    th:text="${o.nombre}"
+                    th:selected="${idObra != null and o.idObra == idObra}">
+            </option>
+          </select>
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label mb-1">Orden</label>
+          <input class="form-control" name="qOrden" th:value="${qOrden}" placeholder="OS123 / OC456">
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label mb-1">Desde</label>
+          <input type="date" class="form-control" name="desde" th:value="${desde}">
+        </div>
+
+        <div class="col-md-2">
+          <label class="form-label mb-1">Hasta</label>
+          <input type="date" class="form-control" name="hasta" th:value="${hasta}">
+        </div>
+
+        <div class="col-md-3">
+          <label class="form-label mb-1">Estado factura</label>
+          <select class="form-select" name="estado">
+            <option value="" th:selected="${#strings.isEmpty(estadoSeleccionado)}">-- Todos --</option>
+            <option value="POR_COBRAR" th:selected="${estadoSeleccionado == 'POR_COBRAR'}">POR_COBRAR</option>
+            <option value="PAGADA" th:selected="${estadoSeleccionado == 'PAGADA'}">PAGADA</option>
+            <option value="EN_RECLAMO" th:selected="${estadoSeleccionado == 'EN_RECLAMO'}">EN_RECLAMO</option>
+            <option value="ANULADA" th:selected="${estadoSeleccionado == 'ANULADA'}">ANULADA</option>
+          </select>
+        </div>
+
+        <div class="col-12 d-flex gap-2 mt-2">
+          <button class="btn btn-primary" type="submit">Filtrar</button>
+          <a class="btn btn-outline-secondary" th:href="@{/reporte/conciliacion}">Limpiar</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+
+        <table class="table table-sm table-hover tabla-conciliacion">
+          <thead class="table-dark">
+          <tr>
+            <th style="width:40px;">#</th>
+            <th>Empresa</th>
+            <th>Obra</th>
+            <th>Orden</th>
+            <th>Factura</th>
+            <th>Estado</th>
+            <th class="monto">Total</th>
+            <th class="monto">Fondo</th>
+            <th class="monto">Detracción</th>
+            <th class="monto">Esperado<br>SIN detracción</th>
+            <th class="monto">Esperado<br>CON detracción</th>
+            <th class="celda-acciones">Acción rápida</th>
+          </tr>
+          </thead>
+
+          <tbody>
+          <tr th:if="${filas == null || #lists.isEmpty(filas)}">
+            <td colspan="12" class="text-center text-muted py-4">
+              No hay datos para los filtros seleccionados.
+            </td>
+          </tr>
+
+          <tr th:each="fila, st : ${filas}">
+            <td th:text="${st.count}">1</td>
+
+            <td th:text="${fila.factura.orden.obra.empresa.nombre}">Empresa</td>
+            <td th:text="${fila.factura.orden.obra.nombre}">Obra</td>
+
+            <td class="text-nowrap">
+              <span class="badge text-bg-secondary badge-orden" th:text="${fila.factura.orden.tipoOrden}">OS</span>
+              <span th:text="${fila.factura.orden.numeroOrden}">123</span>
+            </td>
+
+            <td class="text-nowrap">
+              <span th:if="${fila.factura.serieFactura != null and !#strings.isEmpty(fila.factura.serieFactura)}"
+                    th:text="${fila.factura.serieFactura + '-' + fila.factura.numeroFactura}">F001-1</span>
+              <span th:if="${fila.factura.serieFactura == null or #strings.isEmpty(fila.factura.serieFactura)}"
+                    th:text="${fila.factura.numeroFactura}">1</span>
+            </td>
+
+            <td>
+              <span class="badge"
+                    th:classappend="
+                      ${fila.factura.estadoFactura == 'PAGADA'} ? ' text-bg-success' :
+                      (${fila.factura.estadoFactura == 'EN_RECLAMO'} ? ' text-bg-danger' :
+                      (${fila.factura.estadoFactura == 'ANULADA'} ? ' text-bg-secondary' : ' text-bg-warning'))"
+                    th:text="${fila.factura.estadoFactura}">
+                POR_COBRAR
+              </span>
+
+              <div class="texto-chico text-muted"
+                   th:text="${'Detracción: ' + fila.factura.estadoDetraccion}">
+                Detracción: PENDIENTE
+              </div>
+
+              <!-- ✅ Esto te dice si fue “pagada con o sin detracción” -->
+              <div class="texto-chico"
+                   th:if="${fila.factura.estadoFactura == 'PAGADA' and fila.factura.aplicaDetraccion == true}"
+                   th:text="${fila.factura.estadoDetraccion == 'PAGADA' ? 'Pago: CON detracción' : 'Pago: SIN detracción'}">
+                Pago: CON detracción
+              </div>
+            </td>
+
+            <td class="monto" th:text="${#numbers.formatDecimal(fila.factura.total, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+            <td class="monto" th:text="${#numbers.formatDecimal(fila.factura.montoFondoRetenido, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+            <td class="monto" th:text="${#numbers.formatDecimal(fila.factura.montoDetraccion, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+
+            <td class="monto fw-bold" th:text="${#numbers.formatDecimal(fila.esperadoSinDetraccion, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+            <td class="monto fw-bold" th:text="${#numbers.formatDecimal(fila.esperadoConDetraccion, 1, 'COMMA', 2, 'POINT')}">0.00</td>
+
+            <td class="celda-acciones">
+              <div class="d-flex gap-2 flex-wrap">
+
+                <form th:action="@{/reporte/conciliacion/marcar}" method="post">
+                  <input type="hidden" name="idFactura" th:value="${fila.factura.idFactura}">
+                  <input type="hidden" name="modo" value="CON_DETRACCION">
+                  <button class="btn btn-sm btn-success" type="submit"
+                          th:text="${'Pagada (CON) PEN ' + #numbers.formatDecimal(fila.esperadoConDetraccion, 1, 'COMMA', 2, 'POINT')}"
+                          th:attr="onclick=|return confirm('¿Marcar PAGADA (CON detracción) por PEN ${#numbers.formatDecimal(fila.esperadoConDetraccion, 1, 'COMMA', 2, 'POINT')}?');|">
+                    Pagada (CON)
+                  </button>
+                </form>
+
+                <form th:action="@{/reporte/conciliacion/marcar}" method="post">
+                  <input type="hidden" name="idFactura" th:value="${fila.factura.idFactura}">
+                  <input type="hidden" name="modo" value="SIN_DETRACCION">
+                  <button class="btn btn-sm btn-outline-primary" type="submit"
+                          th:text="${'Pagada (SIN) PEN ' + #numbers.formatDecimal(fila.esperadoSinDetraccion, 1, 'COMMA', 2, 'POINT')}"
+                          th:attr="onclick=|return confirm('¿Marcar PAGADA (SIN detracción) por PEN ${#numbers.formatDecimal(fila.esperadoSinDetraccion, 1, 'COMMA', 2, 'POINT')}?');|">
+                    Pagada (SIN)
+                  </button>
+                </form>
+
+              </div>
+            </td>
+
+          </tr>
+          </tbody>
+
+        </table>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
